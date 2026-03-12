@@ -43,22 +43,13 @@ const Login = () => {
           <div style={{ width: 100, height: 100, borderRadius: 24, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', padding: 10 }}>
             <img src="/logo-80.png" alt="DAS Logo" width={80} height={80} style={{ objectFit: 'contain' }} />
           </div>
-          <h1 className="login-title">Digital Archiving System</h1>
-          <p className="login-subtitle">Ekiti State Geospatial Data Center</p>
-        </div>
+          <h1 className="login-title">Digital Archiving System for Land Titles</h1>
+          <p className="login-subtitle">Ekiti State Geospatial Data Center </p>
       </div>
+    </div>
 
       {/* Login Form */}
       <div className="login-form-container">
-        {/* Logo — visible on both desktop and mobile */}
-        <div className="login-form-logo">
-          <img src="/logo-80.png" alt="Ekiti State" width={64} height={64} style={{ objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--das-primary)', lineHeight: 1.2 }}>Digital Archiving System</div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--das-gray-500)' }}>Government of Ekiti State · Geospatial Data Center</div>
-          </div>
-        </div>
-
         <div className="login-form-header">
           <h2 className="login-form-title">Sign In</h2>
           <p className="login-form-subtitle">Enter your credentials to access the system</p>
@@ -97,16 +88,16 @@ const Login = () => {
 
         {/* Demo accounts */}
         <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--das-gray-100)', borderRadius: 'var(--radius-md)' }}>
-          {/* <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--das-gray-500)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--das-gray-500)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
             Demo accounts — password: <strong style={{ color: 'var(--das-gray-700)' }}>password</strong>
-          </div> */}
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {/* {['admin', 'scanner', 'entry', 'qa', 'editor', 'viewer'].map(u => (
+            {['admin', 'scanner', 'entry', 'qa', 'editor', 'viewer'].map(u => (
               <button key={u} onClick={() => quickLogin(u)} type="button"
                 className="btn btn-sm" style={{ background: 'var(--das-white)', border: '1px solid var(--das-gray-200)', fontSize: '0.75rem', fontWeight: 600 }}>
                 {u}
               </button>
-            ))} */}
+            ))}
           </div>
         </div>
       </div>
@@ -134,14 +125,9 @@ const Login = () => {
         .login-title { font-family: var(--font-primary); font-size: 2rem; font-weight: 800; margin-bottom: var(--space-md); }
         .login-subtitle { font-size: 1rem; opacity: 0.85; line-height: 1.6; }
         .login-form-container { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: var(--space-2xl); max-width: 480px; }
-        .login-form-logo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--das-gray-200); }
         .login-form-title { font-size: 1.5rem; font-weight: 700; margin-bottom: var(--space-xs); }
         .login-form-subtitle { color: var(--das-gray-600); margin-bottom: var(--space-xl); }
-        @media (max-width: 767.98px) {
-          .login-branding { display: none; }
-          .login-form-container { max-width: none; padding: 1.5rem; }
-          .login-form-logo { justify-content: center; text-align: center; flex-direction: column; }
-        }
+        @media (max-width: 767.98px) { .login-branding { display: none; } .login-form-container { max-width: none; } }
       `}</style>
     </div>
   )
