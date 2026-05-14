@@ -55,7 +55,7 @@ const Login = () => {
           <img src="/logo-80.png" alt="Ekiti State" width={64} height={64} style={{ objectFit: 'contain' }} />
           <div>
             <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--das-primary)', lineHeight: 1.2 }}>Digital Archiving System</div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--das-gray-500)' }}>Government of Ekiti State · Geospatial Data Center</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--das-gray-500)' }}>Ekiti State Geospatial Data Center</div>
           </div>
         </div>
 

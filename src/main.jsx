@@ -11,6 +11,7 @@ import {
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/das.css'
 
+
 // Store
 import store from './store'
 
@@ -34,6 +35,7 @@ import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import HelpSupport from './pages/Help'
 import AuditLog from './pages/AuditLog'
+import Scanning from './pages/Scanning'
 
 const ALL_ROLES = ['ADMINISTRATOR', 'SCANNER_OPERATOR', 'DATA_ENTRY', 'QA_REVIEWER', 'EDITOR', 'VIEWER']
 
@@ -62,6 +64,13 @@ const router = createBrowserRouter(
         <Route path="digitization" element={
           <ProtectedRoute roles={['ADMINISTRATOR', 'SCANNER_OPERATOR', 'DATA_ENTRY', 'QA_REVIEWER']}>
             <DigiDashboard />
+          </ProtectedRoute>
+        } />
+
+        {/* Scanning */}
+        <Route path="scanning" element={
+          <ProtectedRoute roles={['ADMINISTRATOR', 'SCANNER_OPERATOR']}>
+            <Scanning />
           </ProtectedRoute>
         } />
 

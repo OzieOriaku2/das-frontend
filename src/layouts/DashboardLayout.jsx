@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import {
   FiHome, FiTarget, FiClipboard, FiCheckCircle, FiLayers,
   FiSettings, FiLogOut, FiChevronDown, FiMenu, FiX,
-  FiBell, FiUser, FiHelpCircle, FiClock,
+  FiBell, FiUser, FiHelpCircle, FiClock, FiCamera
 } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { selectCurrentUser, logout } from '../slices/authSlice'
@@ -20,6 +20,7 @@ const buildSidebarNav = (role) => {
     { path: '/dashboard/archive', icon: FiLayers, label: 'Archive' },
     { section: 'Digitization', show: canEntry || canQA },
     { path: '/dashboard/digitization', icon: FiTarget, label: 'Command Center', show: canEntry || canQA },
+    { path: '/dashboard/scanning', icon: FiCamera, label: 'Scanning', show: canEntry || canQA },
     { path: '/dashboard/data-entry', icon: FiClipboard, label: 'Data Entry', show: canEntry },
     { path: '/dashboard/qa-review', icon: FiCheckCircle, label: 'QA Review', show: canQA },
     { section: 'System', show: isAdmin },
@@ -32,6 +33,7 @@ const buildSidebarNav = (role) => {
 const pageTitles = {
   '/dashboard/archive': { title: 'Archive', desc: 'Browse and manage committed CofO records', icon: FiLayers },
   '/dashboard/digitization': { title: 'Digitization', desc: 'Pipeline progress and command center', icon: FiTarget },
+  '/dashboard/scanning': { title: 'Scanning', desc: 'Register cases and upload scanned documents', icon: FiCamera },
   '/dashboard/data-entry': { title: 'Data Entry', desc: 'Index scanned case files', icon: FiClipboard },
   '/dashboard/qa-review': { title: 'QA Review', desc: 'Verify and approve indexed records', icon: FiCheckCircle },
   '/dashboard/admin': { title: 'Administration', desc: 'Manage users, offices, and system settings', icon: FiSettings },
