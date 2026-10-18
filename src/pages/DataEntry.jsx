@@ -21,6 +21,26 @@ const REQUIRED_DOCS = [
   { type: 'OWNER_ID', label: 'Owner ID' },
 ]
 
+// ─── Ekiti State LGAs (16) ──────────────────────────────────────────────────
+const EKITI_LGAS = [
+  { value: 'ADO_EKITI', label: 'Ado-Ekiti' },
+  { value: 'EFON', label: 'Efon' },
+  { value: 'EKITI_EAST', label: 'Ekiti East' },
+  { value: 'EKITI_SOUTH_WEST', label: 'Ekiti South-West' },
+  { value: 'EKITI_WEST', label: 'Ekiti West' },
+  { value: 'EMURE', label: 'Emure' },
+  { value: 'GBONYIN', label: 'Gbonyin' },
+  { value: 'IDO_OSI', label: 'Ido-Osi' },
+  { value: 'IJERO', label: 'Ijero' },
+  { value: 'IKERE', label: 'Ikere' },
+  { value: 'IKOLE', label: 'Ikole' },
+  { value: 'ILEJEMEJE', label: 'Ilejemeje' },
+  { value: 'IREPODUN_IFELODUN', label: 'Irepodun/Ifelodun' },
+  { value: 'ISE_ORUN', label: 'Ise/Orun' },
+  { value: 'MOBA', label: 'Moba' },
+  { value: 'OYE', label: 'Oye' },
+]
+
 // ─── Required FIELDS — all mandatory per upstream spec ──────────────────────
 const REQUIRED_FIELDS = [
   { key: 'fullName', label: 'Owner Name', altKey: 'firstName' },
@@ -91,7 +111,7 @@ const DataEntry = () => {
   // Indexing form state
   const [meta, setMeta] = useState({
     firstName: '', lastName: '', fullName: '', ownerId: '', gender: '',
-    ownerType: '', ownershipType: '', propertyId: '', location: '',
+    ownerType: '', ownershipType: '', propertyId: '', location: '', lga: '', town: '',
     physicalLocation: '',
     fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '',
   })
@@ -100,7 +120,7 @@ const DataEntry = () => {
   const setDM = (k, v) => setDocMeta(m => ({ ...m, [k]: v }))
 
   const resetMeta = () => {
-    setMeta({ firstName: '', lastName: '', fullName: '', ownerId: '', gender: '', ownerType: '', ownershipType: '', propertyId: '', location: '', physicalLocation: '', fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '' })
+    setMeta({ firstName: '', lastName: '', fullName: '', ownerId: '', gender: '', ownerType: '', ownershipType: '', propertyId: '', location: '', lga: '', town: '', physicalLocation: '', fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '' })
     setTouched(false)
   }
   const resetUpload = () => { setUploadFile(null); setDocMeta({ documentType: '', documentRef: '', documentDate: '', dpiSetting: '150', scanQuality: 'GOOD', pageCount: '1' }); setUploadMode(null) }
@@ -325,6 +345,10 @@ const DataEntry = () => {
                 </div>
                 <div className="col-6"><Input k="propertyId" label="Property / Survey ID" required value={meta.propertyId} onChange={setM} error={hasError("propertyId")} /></div>
                 <div className="col-6"><Input k="location" label="Location" placeholder="Plot/Block" value={meta.location} onChange={setM} error={hasError("location")} /></div>
+                <div className="col-6">
+                  <Select k="lga" label="LGA" value={meta.lga} onChange={setM} options={EKITI_LGAS} />
+                </div>
+                <div className="col-6"><Input k="town" label="Town" placeholder="e.g. Ado-Ekiti" value={meta.town} onChange={setM} /></div>
                 <div className="col-12" style={{ marginTop: 4, marginBottom: 4 }}>
                   <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--das-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--das-gray-200)', paddingBottom: 4 }}>Physical Storage</div>
                 </div>

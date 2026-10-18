@@ -64,6 +64,8 @@ const QAReview = () => {
               ['Ownership', rec?.ownershipType?.replace(/_/g, ' ')],
               ['Property ID', rec?.propertyId],
               ['Location', rec?.location],
+              ['LGA', rec?.lga?.replace(/_/g, ' ')],
+              ['Town', rec?.town],
               ['Physical Storage', rec?.physicalLocation],
               ['Issuance Date', rec?.issuanceDate ? new Date(rec.issuanceDate).toLocaleDateString() : '—'],
               ['Registration Date', rec?.registrationDate ? new Date(rec.registrationDate).toLocaleDateString() : '—'],

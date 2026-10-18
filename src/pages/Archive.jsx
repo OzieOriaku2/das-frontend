@@ -13,6 +13,26 @@ import {
 
 const COLORS = ['#1B6B4A', '#2968A3', '#6848A0', '#C9A227', '#DC2626', '#0284C7', '#8A6B3A', '#5A8A6B']
 
+// ─── Ekiti State LGAs (16) ──────────────────────────────────────────────────
+const EKITI_LGAS = [
+  { value: 'ADO_EKITI', label: 'Ado-Ekiti' },
+  { value: 'EFON', label: 'Efon' },
+  { value: 'EKITI_EAST', label: 'Ekiti East' },
+  { value: 'EKITI_SOUTH_WEST', label: 'Ekiti South-West' },
+  { value: 'EKITI_WEST', label: 'Ekiti West' },
+  { value: 'EMURE', label: 'Emure' },
+  { value: 'GBONYIN', label: 'Gbonyin' },
+  { value: 'IDO_OSI', label: 'Ido-Osi' },
+  { value: 'IJERO', label: 'Ijero' },
+  { value: 'IKERE', label: 'Ikere' },
+  { value: 'IKOLE', label: 'Ikole' },
+  { value: 'ILEJEMEJE', label: 'Ilejemeje' },
+  { value: 'IREPODUN_IFELODUN', label: 'Irepodun/Ifelodun' },
+  { value: 'ISE_ORUN', label: 'Ise/Orun' },
+  { value: 'MOBA', label: 'Moba' },
+  { value: 'OYE', label: 'Oye' },
+]
+
 // ─── Export Helpers ─────────────────────────────────────────────────────────
 
 const exportToCSV = (reportData) => {
@@ -228,6 +248,10 @@ const AdvancedSearchModal = ({ filters, onApply, onClose }) => {
               <div className="col-md-4"><AdvField label="File Number" k="fileNumber" placeholder="e.g. FN/2024/1000" value={f.fileNumber} onChange={set} /></div>
               <div className="col-md-4"><AdvField label="Property / Survey ID" k="propertyId" placeholder="e.g. SRV/5001" value={f.propertyId} onChange={set} /></div>
               <div className="col-md-4"><AdvField label="Location" k="location" placeholder="e.g. Plot 1, Block A" value={f.location} onChange={set} /></div>
+              <div className="col-md-4">
+                <AdvSelect label="LGA" k="lga" value={f.lga} onChange={set} options={EKITI_LGAS} />
+              </div>
+              <div className="col-md-4"><AdvField label="Town" k="town" placeholder="e.g. Ado-Ekiti" value={f.town} onChange={set} /></div>
             </div>
 
             {/* Date Ranges */}
@@ -337,7 +361,7 @@ const Archive = () => {
                   ['Full Name', c.fullName], ['Owner ID', c.ownerId], ['Gender', c.gender?.replace(/_/g, ' ')],
                   ['Owner Type', c.ownerType?.replace(/_/g, ' ')], ['Ownership', c.ownershipType?.replace(/_/g, ' ')],
                   ['Property ID', c.propertyId], ['Location', c.location],
-                  ['Physical Storage', c.physicalLocation],
+                  ['LGA', c.lga?.replace(/_/g, ' ')], ['Town', c.town], ['Physical Storage', c.physicalLocation],
                   ['File Number', c.fileNumber], ['CofO Reference', c.cofoReference],
                   ['Issued', c.issuanceDate ? new Date(c.issuanceDate).toLocaleDateString() : '—'],
                   ['Registered', c.registrationDate ? new Date(c.registrationDate).toLocaleDateString() : '—'],
