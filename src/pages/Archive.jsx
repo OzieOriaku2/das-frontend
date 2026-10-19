@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { FiLayers, FiUsers, FiFile, FiSearch, FiChevronRight, FiEye, FiDownload, FiRefreshCw, FiX, FiSliders } from 'react-icons/fi'
+import { useSelector } from 'react-redux'
+import { FiLayers, FiUsers, FiFile, FiSearch, FiChevronRight, FiEye, FiDownload, FiRefreshCw, FiX, FiSliders, FiEdit2, FiPlus, FiTrash2, FiUpload } from 'react-icons/fi'
 import {
   useGetArchiveStatsQuery, useGetReportByGenderQuery,
   useGetReportByOwnershipQuery, useGetReportByOwnerTypeQuery, useGetReportByDocTypeQuery,
 } from '../slices/reportApiSlice'
-import { useSearchCasesQuery, useGetCaseQuery } from '../slices/caseApiSlice'
+import { useSearchCasesQuery, useGetCaseQuery, useEditCaseMutation, useReplaceDocumentMutation, useAddDocumentToCommittedMutation, useRemoveDocumentMutation } from '../slices/caseApiSlice'
+import { selectCurrentUser } from '../slices/authSlice'
+import { toast } from 'react-toastify'
 import DocumentViewer from '../components/common/DocumentViewer'
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -47,7 +50,7 @@ const exportToCSV = (reportData) => {
   const footer = hasPercent ? `"Total",${reportData.total},100%` : `"Total",${reportData.total}`
   const csv = [header, ...rows, footer].join('\n')
 
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -285,6 +288,294 @@ const AdvancedSearchModal = ({ filters, onApply, onClose }) => {
   )
 }
 
+// ─── Edit Committed Record Modal (OUTSIDE to prevent remount) ──────────────
+const EditField = ({ label, k, value, onChange, type = 'text', placeholder }) => (
+  <div>
+    <label className="form-label-das">{label}</label>
+    <input type={type} className="form-control form-control-das form-control-sm" value={value || ''}
+      onChange={e => onChange(k, e.target.value)} placeholder={placeholder} />
+  </div>
+)
+
+const EditSelect = ({ label, k, options, value, onChange }) => (
+  <div>
+    <label className="form-label-das">{label}</label>
+    <select className="form-control form-control-das form-control-sm" value={value || ''} onChange={e => onChange(k, e.target.value)}>
+      <option value="">— Select —</option>
+      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  </div>
+)
+
+const EditCommittedModal = ({ caseData, onClose, onSave, saving }) => {
+  const [fields, setFields] = useState({
+    fullName: caseData.fullName || '',
+    firstName: caseData.firstName || '',
+    lastName: caseData.lastName || '',
+    ownerId: caseData.ownerId || '',
+    gender: caseData.gender || '',
+    ownerType: caseData.ownerType || '',
+    ownershipType: caseData.ownershipType || '',
+    tenureType: caseData.tenureType || '',
+    propertyId: caseData.propertyId || '',
+    location: caseData.location || '',
+    lga: caseData.lga || '',
+    town: caseData.town || '',
+    fileNumber: caseData.fileNumber || '',
+    cofoReference: caseData.cofoReference || '',
+    issuanceDate: caseData.issuanceDate ? caseData.issuanceDate.slice(0, 10) : '',
+    registrationDate: caseData.registrationDate ? caseData.registrationDate.slice(0, 10) : '',
+    physicalLocation: caseData.physicalLocation || '',
+  })
+  const [reason, setReason] = useState('')
+
+  const set = (k, v) => setFields(prev => ({ ...prev, [k]: v }))
+
+  const getChanges = () => {
+    const changes = {}
+    for (const [k, v] of Object.entries(fields)) {
+      const orig = caseData[k] || ''
+      const origStr = k === 'issuanceDate' || k === 'registrationDate'
+        ? (orig ? orig.slice(0, 10) : '')
+        : String(orig)
+      if (v !== origStr) changes[k] = v
+    }
+    return changes
+  }
+
+  const changes = getChanges()
+  const canSave = Object.keys(changes).length > 0 && reason.trim().length > 0
+
+  return (
+    <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)', zIndex: 2000 }} onClick={onClose}>
+      <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" onClick={e => e.stopPropagation()}>
+        <div className="modal-content">
+          <div className="modal-header" style={{ borderBottom: '1px solid var(--das-gray-200)' }}>
+            <div>
+              <h5 className="modal-title mb-0" style={{ fontSize: '1rem', fontWeight: 700 }}>
+                <FiEdit2 size={16} className="me-2" style={{ color: 'var(--das-primary)' }} />
+                Edit Committed Record — {caseData.cofoNumber}
+              </h5>
+              <div style={{ fontSize: '0.75rem', color: 'var(--das-gray-500)' }}>
+                All changes are logged in the audit trail with your justification
+              </div>
+            </div>
+            <button className="btn-close" onClick={onClose} />
+          </div>
+          <div className="modal-body">
+            {/* Owner Details */}
+            <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--das-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--das-gray-200)', paddingBottom: 4, marginBottom: 10 }}>
+              Owner Details
+            </div>
+            <div className="row g-2 mb-3">
+              <div className="col-md-6"><EditField label="Full Name (as on CofO)" k="fullName" value={fields.fullName} onChange={set} /></div>
+              <div className="col-md-3"><EditField label="First Name" k="firstName" value={fields.firstName} onChange={set} /></div>
+              <div className="col-md-3"><EditField label="Last Name" k="lastName" value={fields.lastName} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Owner ID / NIN" k="ownerId" value={fields.ownerId} onChange={set} /></div>
+              <div className="col-md-4">
+                <EditSelect label="Gender" k="gender" value={fields.gender} onChange={set} options={[
+                  { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
+                ]} />
+              </div>
+              <div className="col-md-4">
+                <EditSelect label="Owner Type" k="ownerType" value={fields.ownerType} onChange={set} options={[
+                  { value: 'INDIVIDUAL', label: 'Individual' }, { value: 'CORPORATE', label: 'Corporate' },
+                  { value: 'GOVERNMENT', label: 'Government' }, { value: 'JOINT_VENTURE', label: 'Joint Venture' },
+                ]} />
+              </div>
+              <div className="col-md-6">
+                <EditSelect label="Ownership Type" k="ownershipType" value={fields.ownershipType} onChange={set} options={[
+                  { value: 'SINGLE_OWNED', label: 'Single Owned' },
+                  { value: 'JOINT_CO_OWNED', label: 'Joint / Co-owned (M&F)' },
+                  { value: 'CORPORATE_OWNED', label: 'Corporate Owned' },
+                ]} />
+              </div>
+              <div className="col-md-6">
+                <EditSelect label="Tenure Type" k="tenureType" value={fields.tenureType} onChange={set} options={[
+                  { value: 'FREEHOLD', label: 'Freehold' }, { value: 'LEASEHOLD', label: 'Leasehold' },
+                  { value: 'CUSTOMARY', label: 'Customary' },
+                ]} />
+              </div>
+            </div>
+
+            {/* Property & Reference */}
+            <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--das-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--das-gray-200)', paddingBottom: 4, marginBottom: 10 }}>
+              Property &amp; Reference
+            </div>
+            <div className="row g-2 mb-3">
+              <div className="col-md-4"><EditField label="Property / Survey ID" k="propertyId" value={fields.propertyId} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Location" k="location" value={fields.location} onChange={set} /></div>
+              <div className="col-md-4">
+                <EditSelect label="LGA" k="lga" value={fields.lga} onChange={set} options={EKITI_LGAS} />
+              </div>
+              <div className="col-md-4"><EditField label="Town" k="town" value={fields.town} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="File Number" k="fileNumber" value={fields.fileNumber} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="CofO Reference" k="cofoReference" value={fields.cofoReference} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Physical Storage" k="physicalLocation" value={fields.physicalLocation} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Issuance Date" k="issuanceDate" type="date" value={fields.issuanceDate} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Registration Date" k="registrationDate" type="date" value={fields.registrationDate} onChange={set} /></div>
+            </div>
+
+            {/* Reason — mandatory */}
+            <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid var(--das-gray-200)', paddingBottom: 4, marginBottom: 10 }}>
+              Justification (Required)
+            </div>
+            <textarea className="form-control form-control-das" rows={3} value={reason} onChange={e => setReason(e.target.value)}
+              placeholder="e.g. Correcting owner name spelling per original CofO document…"
+              style={{ borderColor: reason.trim() ? 'var(--das-gray-300)' : '#DC2626' }} />
+            {!reason.trim() && (
+              <div style={{ fontSize: '0.6875rem', color: '#DC2626', marginTop: 4 }}>
+                A justification is required — this will be recorded in the audit trail.
+              </div>
+            )}
+
+            {/* Change summary */}
+            {Object.keys(changes).length > 0 && (
+              <div className="mt-3 p-2 rounded" style={{ background: 'rgba(27,107,74,0.06)', fontSize: '0.75rem' }}>
+                <strong style={{ color: 'var(--das-primary)' }}>{Object.keys(changes).length} field{Object.keys(changes).length > 1 ? 's' : ''} changed:</strong>{' '}
+                {Object.keys(changes).map(k => k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())).join(', ')}
+              </div>
+            )}
+          </div>
+          <div className="modal-footer" style={{ borderTop: '1px solid var(--das-gray-200)' }}>
+            <button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn btn-das-primary" disabled={!canSave || saving}
+              onClick={() => onSave(changes, reason)}>
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Document Management Modals (OUTSIDE Archive to avoid re-mount focus bugs) ─
+const DOCUMENT_TYPES = [
+  'CERTIFICATE_OF_OCCUPANCY', 'LAND_PARCEL_DIAGRAM', 'OWNER_ID',
+  'ALLOCATION_LETTER', 'TAX_CLEARANCE', 'SURVEY_PLAN', 'OTHER',
+]
+
+const ReplaceDocumentModal = ({ doc, saving, onClose, onReplace }) => {
+  const [file, setFile] = useState(null)
+  const [reason, setReason] = useState('')
+  return (
+    <div className="modal d-block" style={{ background: 'rgba(0,0,0,.45)' }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="modal-content border-0 shadow">
+          <div className="modal-header" style={{ background: 'var(--das-primary)', color: '#fff' }}>
+            <h6 className="modal-title mb-0"><FiUpload className="me-2" />Replace Document</h6>
+            <button className="btn-close btn-close-white" onClick={onClose} />
+          </div>
+          <div className="modal-body">
+            <p style={{ fontSize: '0.8125rem', color: 'var(--das-gray-600)' }}>
+              Replacing: <strong>{doc.documentType?.replace(/_/g, ' ')}</strong> — {doc.fileName}
+            </p>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>New Scan File *</label>
+              <input type="file" className="form-control form-control-sm" accept=".pdf,.tif,.tiff,.jpg,.jpeg,.png"
+                onChange={e => setFile(e.target.files[0])} />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>Reason for Replacement *</label>
+              <textarea className="form-control form-control-sm" rows={3} placeholder="e.g. Original scan was blurry / wrong page scanned…"
+                value={reason} onChange={e => setReason(e.target.value)} />
+            </div>
+          </div>
+          <div className="modal-footer" style={{ borderTop: '1px solid var(--das-gray-200)' }}>
+            <button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn btn-das-primary" disabled={!file || !reason.trim() || saving}
+              onClick={() => onReplace(file, reason)}>
+              {saving ? 'Uploading…' : 'Replace Document'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const AddDocumentModal = ({ saving, onClose, onAdd }) => {
+  const [file, setFile] = useState(null)
+  const [documentType, setDocumentType] = useState('')
+  const [reason, setReason] = useState('')
+  return (
+    <div className="modal d-block" style={{ background: 'rgba(0,0,0,.45)' }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="modal-content border-0 shadow">
+          <div className="modal-header" style={{ background: 'var(--das-primary)', color: '#fff' }}>
+            <h6 className="modal-title mb-0"><FiPlus className="me-2" />Add Document</h6>
+            <button className="btn-close btn-close-white" onClick={onClose} />
+          </div>
+          <div className="modal-body">
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>Document Type *</label>
+              <select className="form-select form-select-sm" value={documentType} onChange={e => setDocumentType(e.target.value)}>
+                <option value="">Select type…</option>
+                {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>Scan File *</label>
+              <input type="file" className="form-control form-control-sm" accept=".pdf,.tif,.tiff,.jpg,.jpeg,.png"
+                onChange={e => setFile(e.target.files[0])} />
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>Reason for Addition *</label>
+              <textarea className="form-control form-control-sm" rows={3} placeholder="e.g. Missing document discovered during audit…"
+                value={reason} onChange={e => setReason(e.target.value)} />
+            </div>
+          </div>
+          <div className="modal-footer" style={{ borderTop: '1px solid var(--das-gray-200)' }}>
+            <button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn btn-das-primary" disabled={!file || !documentType || !reason.trim() || saving}
+              onClick={() => onAdd(file, documentType, reason)}>
+              {saving ? 'Uploading…' : 'Add Document'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const RemoveDocumentModal = ({ doc, saving, onClose, onRemove }) => {
+  const [reason, setReason] = useState('')
+  return (
+    <div className="modal d-block" style={{ background: 'rgba(0,0,0,.45)' }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="modal-content border-0 shadow">
+          <div className="modal-header" style={{ background: '#DC2626', color: '#fff' }}>
+            <h6 className="modal-title mb-0"><FiTrash2 className="me-2" />Remove Document</h6>
+            <button className="btn-close btn-close-white" onClick={onClose} />
+          </div>
+          <div className="modal-body">
+            <div className="p-3 mb-3 rounded" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <strong style={{ fontSize: '0.8125rem', color: '#991B1B' }}>Warning:</strong>
+              <span style={{ fontSize: '0.8125rem', color: '#991B1B' }}> This will remove the document record. The file is archived on disk and can be recovered by an administrator.</span>
+            </div>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--das-gray-600)' }}>
+              Removing: <strong>{doc.documentType?.replace(/_/g, ' ')}</strong> — {doc.fileName}
+            </p>
+            <div className="mb-3">
+              <label className="form-label fw-semibold" style={{ fontSize: '0.8125rem' }}>Reason for Removal *</label>
+              <textarea className="form-control form-control-sm" rows={3} placeholder="e.g. Duplicate scan / Document attached to wrong case…"
+                value={reason} onChange={e => setReason(e.target.value)} />
+            </div>
+          </div>
+          <div className="modal-footer" style={{ borderTop: '1px solid var(--das-gray-200)' }}>
+            <button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn" style={{ background: '#DC2626', color: '#fff' }} disabled={!reason.trim() || saving}
+              onClick={() => onRemove(reason)}>
+              {saving ? 'Removing…' : 'Remove Document'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const Archive = () => {
   const [tab, setTab] = useState('browse')
   const [searchQ, setSearchQ] = useState('')
@@ -294,6 +585,17 @@ const Archive = () => {
   const [viewDoc, setViewDoc] = useState(null)
   const [showAdvSearch, setShowAdvSearch] = useState(false)
   const [advFilters, setAdvFilters] = useState({})
+  const [showEdit, setShowEdit] = useState(false)
+  const [showReplaceDoc, setShowReplaceDoc] = useState(null)   // holds doc object
+  const [showAddDoc, setShowAddDoc] = useState(false)
+  const [showRemoveDoc, setShowRemoveDoc] = useState(null)     // holds doc object
+
+  const currentUser = useSelector(selectCurrentUser)
+  const canEdit = currentUser?.role === 'ADMINISTRATOR' || currentUser?.role === 'EDITOR'
+  const [editCase, { isLoading: editSaving }] = useEditCaseMutation()
+  const [replaceDocument, { isLoading: replaceSaving }] = useReplaceDocumentMutation()
+  const [addDocumentToCommitted, { isLoading: addSaving }] = useAddDocumentToCommittedMutation()
+  const [removeDocument, { isLoading: removeSaving }] = useRemoveDocumentMutation()
 
   // Reports state
   const [rType, setRType] = useState('gender')
@@ -354,9 +656,16 @@ const Archive = () => {
           <div className="col-lg-6">
             <div className="das-card">
               <div className="das-card-body">
-                <h5 className="mb-3">{c.cofoNumber} <span className="das-badge success">Committed</span>
-                  {c.source === 'LMIS_IMPORT' && <span className="das-badge info ms-1">LMIS</span>}
-                </h5>
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                  <h5 className="mb-0">{c.cofoNumber} <span className="das-badge success">Committed</span>
+                    {c.source === 'LMIS_IMPORT' && <span className="das-badge info ms-1">LMIS</span>}
+                  </h5>
+                  {canEdit && (
+                    <button className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" onClick={() => setShowEdit(true)}>
+                      <FiEdit2 size={13} /> Edit Record
+                    </button>
+                  )}
+                </div>
                 {[
                   ['Full Name', c.fullName], ['Owner ID', c.ownerId], ['Gender', c.gender?.replace(/_/g, ' ')],
                   ['Owner Type', c.ownerType?.replace(/_/g, ' ')], ['Ownership', c.ownershipType?.replace(/_/g, ' ')],
@@ -378,7 +687,14 @@ const Archive = () => {
           <div className="col-lg-6">
             <div className="das-card mb-3">
               <div className="das-card-body">
-                <h6 className="mb-3">Documents ({c.documents?.length})</h6>
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h6 className="mb-0">Documents ({c.documents?.length})</h6>
+                  {canEdit && (
+                    <button className="btn btn-sm btn-das-primary" onClick={() => setShowAddDoc(true)}>
+                      <FiPlus size={13} className="me-1" />Add Document
+                    </button>
+                  )}
+                </div>
                 {c.documents?.map(doc => (
                   <div key={doc.id} className="d-flex align-items-center p-2 rounded mb-1" style={{ background: 'var(--das-gray-100)' }}>
                     <FiFile className="me-2" style={{ color: 'var(--das-primary)' }} />
@@ -386,9 +702,21 @@ const Archive = () => {
                       <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{doc.documentType?.replace(/_/g, ' ')}</div>
                       <div style={{ fontSize: '0.6875rem', color: 'var(--das-gray-500)' }}>{doc.format} · {doc.dpiSetting}DPI · {doc.pageCount}pg</div>
                     </div>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => setViewDoc(doc)}>
-                      <FiEye size={13} className="me-1" />View
-                    </button>
+                    <div className="d-flex gap-1">
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => setViewDoc(doc)}>
+                        <FiEye size={13} className="me-1" />View
+                      </button>
+                      {canEdit && (
+                        <>
+                          <button className="btn btn-sm btn-outline-primary" title="Replace scan" onClick={() => setShowReplaceDoc(doc)}>
+                            <FiUpload size={13} />
+                          </button>
+                          <button className="btn btn-sm btn-outline-danger" title="Remove document" onClick={() => setShowRemoveDoc(doc)}>
+                            <FiTrash2 size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {(!c.documents || c.documents.length === 0) && <p className="text-muted mb-0">No documents</p>}
@@ -411,6 +739,80 @@ const Archive = () => {
             </div>
           </div>
         </div>
+
+        {/* Edit Committed Record Modal */}
+        {showEdit && (
+          <EditCommittedModal
+            caseData={c}
+            saving={editSaving}
+            onClose={() => setShowEdit(false)}
+            onSave={async (changes, reason) => {
+              try {
+                await editCase({ caseId: c.id, changes, reason }).unwrap()
+                toast.success('Record updated — changes logged in audit trail')
+                setShowEdit(false)
+              } catch (e) {
+                toast.error(e?.data?.error || 'Failed to save changes')
+              }
+            }}
+          />
+        )}
+
+        {/* Document Management Modals */}
+        {showReplaceDoc && (
+          <ReplaceDocumentModal
+            doc={showReplaceDoc}
+            saving={replaceSaving}
+            onClose={() => setShowReplaceDoc(null)}
+            onReplace={async (file, reason) => {
+              try {
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('reason', reason)
+                await replaceDocument({ caseId: c.id, docId: showReplaceDoc.id, formData }).unwrap()
+                toast.success('Document replaced — old scan archived')
+                setShowReplaceDoc(null)
+              } catch (e) {
+                toast.error(e?.data?.error || 'Failed to replace document')
+              }
+            }}
+          />
+        )}
+        {showAddDoc && (
+          <AddDocumentModal
+            saving={addSaving}
+            onClose={() => setShowAddDoc(false)}
+            onAdd={async (file, documentType, reason) => {
+              try {
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('documentType', documentType)
+                formData.append('reason', reason)
+                await addDocumentToCommitted({ caseId: c.id, formData }).unwrap()
+                toast.success('Document added to record')
+                setShowAddDoc(false)
+              } catch (e) {
+                toast.error(e?.data?.error || 'Failed to add document')
+              }
+            }}
+          />
+        )}
+        {showRemoveDoc && (
+          <RemoveDocumentModal
+            doc={showRemoveDoc}
+            saving={removeSaving}
+            onClose={() => setShowRemoveDoc(null)}
+            onRemove={async (reason) => {
+              try {
+                await removeDocument({ caseId: c.id, docId: showRemoveDoc.id, reason }).unwrap()
+                toast.success('Document removed — file archived on disk')
+                setShowRemoveDoc(null)
+              } catch (e) {
+                toast.error(e?.data?.error || 'Failed to remove document')
+              }
+            }}
+          />
+        )}
 
         {/* Document Viewer — INSIDE detail view return */}
         {viewDoc && <DocumentViewer doc={viewDoc} onClose={() => setViewDoc(null)} />}

@@ -103,6 +103,46 @@ export const caseApiSlice = apiSlice.injectEndpoints({
       ],
     }),
 
+    // ─── DOCUMENT MANAGEMENT (committed records) ─────────────────────────
+
+    replaceDocument: builder.mutation({
+      query: ({ caseId, docId, formData }) => ({
+        url: `/documents/${caseId}/replace/${docId}`,
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { caseId }) => [
+        { type: 'Documents', id: caseId },
+        { type: 'Case', id: caseId },
+      ],
+    }),
+
+    addDocumentToCommitted: builder.mutation({
+      query: ({ caseId, formData }) => ({
+        url: `/documents/${caseId}/add-committed`,
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { caseId }) => [
+        { type: 'Documents', id: caseId },
+        { type: 'Case', id: caseId },
+        { type: 'Cases', id: 'LIST' },
+      ],
+    }),
+
+    removeDocument: builder.mutation({
+      query: ({ caseId, docId, reason }) => ({
+        url: `/documents/${caseId}/remove/${docId}`,
+        method: 'DELETE',
+        body: { reason },
+      }),
+      invalidatesTags: (result, error, { caseId }) => [
+        { type: 'Documents', id: caseId },
+        { type: 'Case', id: caseId },
+        { type: 'Cases', id: 'LIST' },
+      ],
+    }),
+
     // ─── SEARCH ─────────────────────────────────────────────────────────
 
     searchCases: builder.query({
@@ -129,5 +169,8 @@ export const {
   useGetPipelineQueuesQuery,
   useGetDocumentsQuery,
   useUploadDocumentMutation,
+  useReplaceDocumentMutation,
+  useAddDocumentToCommittedMutation,
+  useRemoveDocumentMutation,
   useSearchCasesQuery,
 } = caseApiSlice
