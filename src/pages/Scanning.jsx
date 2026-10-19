@@ -74,14 +74,21 @@ const Scanning = () => {
     fd.append('format', 'PDF/A')
     fd.append('colorMode', 'Grayscale 8-bit')
     try {
-      await uploadDoc({ caseId: activeCase.id, formData: fd }).unwrap()
+      const uploadResult = await uploadDoc({ caseId: activeCase.id, formData: fd }).unwrap()
       toast.success(`${DOC_TYPES.find(d => d.value === docMeta.documentType)?.label || 'Document'} uploaded`)
       setShowUpload(false)
       resetUpload()
-      refetch()
-      // Refresh active case documents
-      const updated = recentCases.find(c => c.id === activeCase.id)
-      if (updated) setActiveCase(updated)
+      // Immediately show the uploaded document in the active case
+      if (uploadResult.document) {
+        setActiveCase(prev => ({
+          ...prev,
+          documents: [...(prev.documents || []), uploadResult.document]
+        }))
+      }
+      // Await refetch so the case list sidebar is also up to date
+      const refetchResult = await refetch()
+      const freshCase = refetchResult.data?.cases?.find(c => c.id === activeCase.id)
+      if (freshCase) setActiveCase(freshCase)
     } catch (e) { toast.error(e?.data?.error || 'Upload failed') }
   }
 
