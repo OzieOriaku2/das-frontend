@@ -1,7 +1,9 @@
-import { useState } from 'react'
-import { FiPlus, FiFile, FiUpload, FiMonitor, FiCheckCircle, FiPackage, FiEye } from 'react-icons/fi'
+import { useState, useRef } from 'react'
+import { useSelector } from 'react-redux'
+import { FiPlus, FiFile, FiUpload, FiMonitor, FiCheckCircle, FiPackage, FiEye, FiUser } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { useCreateCaseMutation, useGetCasesQuery, useUploadDocumentMutation } from '../slices/caseApiSlice'
+import { selectCurrentUser } from '../slices/authSlice'
 import DocumentViewer from '../components/common/DocumentViewer'
 
 const DOC_TYPES = [
@@ -15,6 +17,7 @@ const DOC_TYPES = [
 ]
 
 const Scanning = () => {
+  const currentUser = useSelector(selectCurrentUser)
   const [createCase, { isLoading: creating }] = useCreateCaseMutation()
   const [uploadDoc, { isLoading: uploading }] = useUploadDocumentMutation()
   const { data: recentData, refetch } = useGetCasesQuery({ stage: 'SCANNED', pageSize: 20 })
@@ -27,6 +30,9 @@ const Scanning = () => {
   // Active case for document upload
   const [activeCase, setActiveCase] = useState(null)
 
+  // "My Cases" filter — defaults ON so each admin sees only their own cases
+  const [showMyCases, setShowMyCases] = useState(true)
+
   // Upload modal
   const [showUpload, setShowUpload] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
@@ -34,12 +40,30 @@ const Scanning = () => {
   const setDM = (k, v) => setDocMeta(m => ({ ...m, [k]: v }))
   const resetUpload = () => { setUploadFile(null); setDocMeta({ documentType: '', documentRef: '', documentDate: '', dpiSetting: '150', scanQuality: 'GOOD', pageCount: '1' }) }
 
+  // CRITICAL: Lock the caseId when upload modal opens.
+  // This prevents any race condition where activeCase changes between
+  // opening the modal and clicking "Upload Document".
+  const uploadCaseIdRef = useRef(null)
+  const uploadCaseCofoRef = useRef(null)
+
+  const openUploadModal = () => {
+    if (!activeCase) return
+    uploadCaseIdRef.current = activeCase.id
+    uploadCaseCofoRef.current = activeCase.cofoNumber
+    setShowUpload(true)
+  }
+
   // Document viewer
   const [viewDoc, setViewDoc] = useState(null)
 
-  const recentCases = recentData?.cases || []
+  const allCases = recentData?.cases || []
 
-  // ─── Create Case ──────────────────────────────────────────────────────────
+  // Filter: "My Cases" shows only cases created by current user
+  const recentCases = showMyCases && currentUser
+    ? allCases.filter(c => c.scannedById === currentUser.id)
+    : allCases
+
+  // Create Case
   const handleCreate = async () => {
     if (!cofoNumber.trim()) { toast.error('CofO number is required'); return }
     try {
@@ -59,10 +83,16 @@ const Scanning = () => {
     }
   }
 
-  // ─── Upload Document ──────────────────────────────────────────────────────
+  // Upload Document — uses LOCKED caseId from ref, not activeCase
   const handleUpload = async () => {
     if (!uploadFile) { toast.error('Select a file'); return }
     if (!docMeta.documentType) { toast.error('Select document type'); return }
+
+    // Use the LOCKED caseId from when the modal was opened
+    const targetCaseId = uploadCaseIdRef.current
+    const targetCofo = uploadCaseCofoRef.current
+    if (!targetCaseId) { toast.error('No case selected'); return }
+
     const fd = new FormData()
     fd.append('file', uploadFile)
     fd.append('documentType', docMeta.documentType)
@@ -74,12 +104,12 @@ const Scanning = () => {
     fd.append('format', 'PDF/A')
     fd.append('colorMode', 'Grayscale 8-bit')
     try {
-      const uploadResult = await uploadDoc({ caseId: activeCase.id, formData: fd }).unwrap()
-      toast.success(`${DOC_TYPES.find(d => d.value === docMeta.documentType)?.label || 'Document'} uploaded`)
+      const uploadResult = await uploadDoc({ caseId: targetCaseId, formData: fd }).unwrap()
+      toast.success(`${DOC_TYPES.find(d => d.value === docMeta.documentType)?.label || 'Document'} uploaded to ${targetCofo}`)
       setShowUpload(false)
       resetUpload()
       // Immediately show the uploaded document in the active case
-      if (uploadResult.document) {
+      if (uploadResult.document && activeCase?.id === targetCaseId) {
         setActiveCase(prev => ({
           ...prev,
           documents: [...(prev.documents || []), uploadResult.document]
@@ -87,8 +117,8 @@ const Scanning = () => {
       }
       // Await refetch so the case list sidebar is also up to date
       const refetchResult = await refetch()
-      const freshCase = refetchResult.data?.cases?.find(c => c.id === activeCase.id)
-      if (freshCase) setActiveCase(freshCase)
+      const freshCase = refetchResult.data?.cases?.find(c => c.id === targetCaseId)
+      if (freshCase && activeCase?.id === targetCaseId) setActiveCase(freshCase)
     } catch (e) { toast.error(e?.data?.error || 'Upload failed') }
   }
 
@@ -96,7 +126,7 @@ const Scanning = () => {
     <div className="fade-in">
       <div className="row g-4">
 
-        {/* ═══ LEFT: Create Case + Recent Cases ═══ */}
+        {/* LEFT: Create Case + Recent Cases */}
         <div className="col-lg-5">
           {/* Create New Case */}
           <div className="das-card mb-4">
@@ -135,10 +165,27 @@ const Scanning = () => {
                   <FiPackage size={16} className="me-2" style={{ color: 'var(--das-gray-500)' }} />
                   Scanned Cases ({recentCases.length})
                 </h6>
+                {/* My Cases / All Cases toggle */}
+                <div className="d-flex align-items-center gap-1">
+                  <button
+                    className={`btn btn-sm ${showMyCases ? 'btn-das-primary' : 'btn-outline-secondary'}`}
+                    style={{ fontSize: '0.65rem', padding: '2px 8px' }}
+                    onClick={() => setShowMyCases(true)}
+                  >
+                    <FiUser size={10} className="me-1" />Mine
+                  </button>
+                  <button
+                    className={`btn btn-sm ${!showMyCases ? 'btn-das-primary' : 'btn-outline-secondary'}`}
+                    style={{ fontSize: '0.65rem', padding: '2px 8px' }}
+                    onClick={() => setShowMyCases(false)}
+                  >
+                    All
+                  </button>
+                </div>
               </div>
               {recentCases.length === 0 && (
                 <div className="text-center py-4 text-muted" style={{ fontSize: '0.8125rem' }}>
-                  No cases yet — create one above
+                  {showMyCases ? 'No cases created by you — create one above' : 'No cases yet — create one above'}
                 </div>
               )}
               {recentCases.map(c => (
@@ -156,6 +203,7 @@ const Scanning = () => {
                     <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{c.cofoNumber}</div>
                     <div style={{ fontSize: '0.6875rem', color: 'var(--das-gray-500)' }}>
                       {c.documents?.length || 0} docs · {c.physicalLocation || 'No location'}
+                      {c.scannedBy?.name && ` · ${c.scannedBy.name}`}
                     </div>
                   </div>
                   <span className="das-badge info" style={{ fontSize: '0.625rem' }}>SCANNED</span>
@@ -165,7 +213,7 @@ const Scanning = () => {
           </div>
         </div>
 
-        {/* ═══ RIGHT: Selected Case — Upload Documents ═══ */}
+        {/* RIGHT: Selected Case */}
         <div className="col-lg-7">
           {!activeCase ? (
             <div className="das-card">
@@ -183,9 +231,14 @@ const Scanning = () => {
                     <h6 className="mb-0" style={{ fontWeight: 700 }}>{activeCase.cofoNumber}</h6>
                     <div style={{ fontSize: '0.75rem', color: 'var(--das-gray-500)' }}>
                       {activeCase.physicalLocation || 'No physical location set'} · {activeCase.office?.name || ''}
+                      {activeCase.scannedBy?.name && (
+                        <span style={{ marginLeft: 4, fontWeight: 600, color: 'var(--das-primary)' }}>
+                          · Created by {activeCase.scannedBy.name}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <button className="btn btn-sm btn-das-primary" onClick={() => setShowUpload(true)}>
+                  <button className="btn btn-sm btn-das-primary" onClick={openUploadModal}>
                     <FiUpload className="me-1" /> Upload Document
                   </button>
                 </div>
@@ -236,16 +289,23 @@ const Scanning = () => {
         </div>
       </div>
 
-      {/* ═══ Upload Modal ═══ */}
+      {/* Upload Modal */}
       {showUpload && activeCase && (
         <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setShowUpload(false); resetUpload() }}>
           <div className="modal-dialog modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Upload Document — {activeCase.cofoNumber}</h5>
+                <h5 className="modal-title">Upload Document — {uploadCaseCofoRef.current || activeCase.cofoNumber}</h5>
                 <button className="btn-close" onClick={() => { setShowUpload(false); resetUpload() }} />
               </div>
               <div className="modal-body">
+                {/* Case confirmation banner */}
+                <div className="mb-3 p-2 rounded d-flex align-items-center gap-2" style={{ background: 'rgba(27,107,74,0.08)', border: '1px solid var(--das-primary)', fontSize: '0.8125rem' }}>
+                  <FiPackage size={16} color="var(--das-primary)" />
+                  <span>Uploading to case: <strong>{uploadCaseCofoRef.current || activeCase.cofoNumber}</strong></span>
+                  {activeCase.scannedBy?.name && <span style={{ color: 'var(--das-gray-500)' }}>· Created by {activeCase.scannedBy.name}</span>}
+                </div>
+
                 {/* File picker */}
                 <div onClick={() => document.getElementById('scan-doc-file')?.click()} className="text-center p-4 rounded mb-3"
                   style={{ border: `2px dashed ${uploadFile ? 'var(--das-primary)' : 'var(--das-gray-300)'}`, background: uploadFile ? 'rgba(27,107,74,0.04)' : 'var(--das-gray-100)', cursor: 'pointer' }}>
