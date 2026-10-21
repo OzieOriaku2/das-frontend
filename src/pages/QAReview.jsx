@@ -59,6 +59,8 @@ const QAReview = () => {
               ['CofO Reference', rec?.cofoReference],
               ['Owner', rec?.fullName],
               ['Owner ID', rec?.ownerId],
+              ['Phone', rec?.ownerPhone || '—'],
+              ['Alt. Phone', rec?.ownerPhoneAlt || '—'],
               ['Gender', rec?.gender?.replace(/_/g, ' ')],
               ['Owner Type', rec?.ownerType?.replace(/_/g, ' ')],
               ['Ownership', rec?.ownershipType?.replace(/_/g, ' ')],

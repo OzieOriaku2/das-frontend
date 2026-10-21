@@ -15,7 +15,7 @@ const Admin = () => {
   const [showCreate, setShowCreate] = useState(false)
   const [editUser, setEditUser] = useState(null)
   const [editOffice, setEditOffice] = useState(null)
-  const [nu, setNu] = useState({ username: '', password: '', name: '', role: '', officeId: '' })
+  const [nu, setNu] = useState({ username: '', password: '', name: '', role: '', officeId: '', phone: '' })
   const [eu, setEu] = useState({})
   const [eo, setEo] = useState({ name: '', hardcopyInventoryCount: '' })
 
@@ -24,7 +24,7 @@ const Admin = () => {
 
   const handleCreate = async () => {
     if (!nu.username || !nu.password || !nu.name || !nu.role || !nu.officeId) { toast.error('All fields required'); return }
-    try { await createUser(nu).unwrap(); toast.success('User created'); setShowCreate(false); setNu({ username: '', password: '', name: '', role: '', officeId: '' }) }
+    try { await createUser(nu).unwrap(); toast.success('User created'); setShowCreate(false); setNu({ username: '', password: '', name: '', role: '', officeId: '', phone: '' }) }
     catch (e) { toast.error(e?.data?.error || 'Failed') }
   }
 
@@ -65,17 +65,18 @@ const Admin = () => {
         <div className="das-card">
           <div className="table-responsive">
             <table className="table table-hover mb-0">
-              <thead><tr>{['Name', 'Username', 'Role', 'Office', 'Status', 'Actions'].map(h => <th key={h} style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--das-gray-500)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Name', 'Username', 'Phone', 'Role', 'Office', 'Status', 'Actions'].map(h => <th key={h} style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--das-gray-500)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
               <tbody>{users.map(u => (
                 <tr key={u.id} style={{ opacity: u.active ? 1 : 0.5 }}>
                   <td style={{ fontWeight: 600 }}>{u.name}</td>
                   <td style={{ color: 'var(--das-gray-500)' }}>@{u.username}</td>
+                  <td style={{ fontSize: '0.8125rem' }}>{u.phone || '—'}</td>
                   <td><span className="das-badge info">{u.role?.replace(/_/g, ' ')}</span></td>
                   <td style={{ fontSize: '0.8125rem' }}>{u.office?.name}</td>
                   <td>{u.active ? <span className="das-badge success">Active</span> : <span className="das-badge danger">Inactive</span>}</td>
                   <td>
                     <div className="d-flex gap-1">
-                      <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditUser(u); setEu({ name: u.name, role: u.role, officeId: u.office?.id, password: '' }) }}><FiEdit size={14} /></button>
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditUser(u); setEu({ name: u.name, role: u.role, officeId: u.office?.id, password: '', phone: u.phone || '' }) }}><FiEdit size={14} /></button>
                       <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleActive(u)}><FiPower size={14} /></button>
                     </div>
                   </td>
@@ -118,6 +119,7 @@ const Admin = () => {
               <div className="modal-header"><h5 className="modal-title">Create User</h5><button className="btn-close" onClick={() => setShowCreate(false)} /></div>
               <div className="modal-body">
                 <div className="mb-2"><label className="form-label-das">Full Name</label><input className="form-control form-control-das form-control-sm" value={nu.name} onChange={e => setNu(n => ({ ...n, name: e.target.value }))} /></div>
+                <div className="mb-2"><label className="form-label-das">Phone Number</label><input className="form-control form-control-das form-control-sm" value={nu.phone} onChange={e => setNu(n => ({ ...n, phone: e.target.value }))} placeholder="e.g. 08012345678" /></div>
                 <div className="row g-2 mb-2"><div className="col"><label className="form-label-das">Username</label><input className="form-control form-control-das form-control-sm" value={nu.username} onChange={e => setNu(n => ({ ...n, username: e.target.value }))} /></div><div className="col"><label className="form-label-das">Password</label><input type="password" className="form-control form-control-das form-control-sm" value={nu.password} onChange={e => setNu(n => ({ ...n, password: e.target.value }))} /></div></div>
                 <div className="row g-2"><div className="col"><label className="form-label-das">Role</label><select className="form-control form-control-das form-control-sm" value={nu.role} onChange={e => setNu(n => ({ ...n, role: e.target.value }))}><option value="">Select</option>{ROLES.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}</select></div><div className="col"><label className="form-label-das">Office</label><select className="form-control form-control-das form-control-sm" value={nu.officeId} onChange={e => setNu(n => ({ ...n, officeId: e.target.value }))}><option value="">Select</option>{offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div></div>
               </div>
@@ -135,6 +137,7 @@ const Admin = () => {
               <div className="modal-header"><h5 className="modal-title">Edit — {editUser.name}</h5><button className="btn-close" onClick={() => setEditUser(null)} /></div>
               <div className="modal-body">
                 <div className="mb-2"><label className="form-label-das">Name</label><input className="form-control form-control-das form-control-sm" value={eu.name || ''} onChange={e => setEu(x => ({ ...x, name: e.target.value }))} /></div>
+                <div className="mb-2"><label className="form-label-das">Phone Number</label><input className="form-control form-control-das form-control-sm" value={eu.phone || ''} onChange={e => setEu(x => ({ ...x, phone: e.target.value }))} placeholder="e.g. 08012345678" /></div>
                 <div className="row g-2 mb-2"><div className="col"><label className="form-label-das">Role</label><select className="form-control form-control-das form-control-sm" value={eu.role || ''} onChange={e => setEu(x => ({ ...x, role: e.target.value }))}><option value="">Select</option>{ROLES.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}</select></div><div className="col"><label className="form-label-das">Office</label><select className="form-control form-control-das form-control-sm" value={eu.officeId || ''} onChange={e => setEu(x => ({ ...x, officeId: e.target.value }))}><option value="">Select</option>{offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div></div>
                 <div className="mb-2"><label className="form-label-das">New Password (leave blank to keep)</label><input type="password" className="form-control form-control-das form-control-sm" value={eu.password || ''} onChange={e => setEu(x => ({ ...x, password: e.target.value }))} /></div>
               </div>

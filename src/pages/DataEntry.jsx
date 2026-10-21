@@ -111,7 +111,8 @@ const DataEntry = () => {
   // Indexing form state
   const [meta, setMeta] = useState({
     firstName: '', lastName: '', fullName: '', ownerId: '', gender: '',
-    ownerType: '', ownershipType: '', propertyId: '', location: '', lga: '', town: '',
+    ownerType: '', ownershipType: '', ownerPhone: '', ownerPhoneAlt: '',
+    propertyId: '', location: '', lga: '', town: '',
     physicalLocation: '',
     fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '',
   })
@@ -120,7 +121,7 @@ const DataEntry = () => {
   const setDM = (k, v) => setDocMeta(m => ({ ...m, [k]: v }))
 
   const resetMeta = () => {
-    setMeta({ firstName: '', lastName: '', fullName: '', ownerId: '', gender: '', ownerType: '', ownershipType: '', propertyId: '', location: '', lga: '', town: '', physicalLocation: '', fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '' })
+    setMeta({ firstName: '', lastName: '', fullName: '', ownerId: '', gender: '', ownerType: '', ownershipType: '', ownerPhone: '', ownerPhoneAlt: '', propertyId: '', location: '', lga: '', town: '', physicalLocation: '', fileNumber: '', cofoReference: '', issuanceDate: '', registrationDate: '' })
     setTouched(false)
   }
   const resetUpload = () => { setUploadFile(null); setDocMeta({ documentType: '', documentRef: '', documentDate: '', dpiSetting: '150', scanQuality: 'GOOD', pageCount: '1' }); setUploadMode(null) }
@@ -322,6 +323,8 @@ const DataEntry = () => {
                 <div className="col-6"><Input k="lastName" label="Last Name" value={meta.lastName} onChange={setM} error={hasError("lastName")} /></div>
                 <div className="col-12"><Input k="fullName" label="Full Name (as on CofO)" required value={meta.fullName} onChange={setM} error={hasError("fullName")} /></div>
                 <div className="col-6"><Input k="ownerId" label="Owner ID Number" required value={meta.ownerId} onChange={setM} error={hasError("ownerId")} /></div>
+                <div className="col-6"><Input k="ownerPhone" label="Owner Phone" placeholder="e.g. 08012345678" value={meta.ownerPhone} onChange={setM} /></div>
+                <div className="col-6"><Input k="ownerPhoneAlt" label="Alt. Phone" placeholder="e.g. 08098765432" value={meta.ownerPhoneAlt} onChange={setM} /></div>
                 <div className="col-6">
                   <Select k="gender" label="Gender" required value={meta.gender} onChange={setM} error={hasError("gender")} options={[
                     { value: 'MALE', label: 'Male' },

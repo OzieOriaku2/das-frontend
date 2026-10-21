@@ -221,6 +221,8 @@ const AdvancedSearchModal = ({ filters, onApply, onClose }) => {
               <div className="col-md-4"><AdvField label="First Name" k="firstName" placeholder="e.g. Abubakar" value={f.firstName} onChange={set} /></div>
               <div className="col-md-4"><AdvField label="Surname" k="lastName" placeholder="e.g. Mohammed" value={f.lastName} onChange={set} /></div>
               <div className="col-md-4"><AdvField label="Owner ID / NIN" k="ownerId" placeholder="e.g. NIN12345678901" value={f.ownerId} onChange={set} /></div>
+              <div className="col-md-4"><AdvField label="Phone" k="ownerPhone" placeholder="e.g. 08012345678" value={f.ownerPhone} onChange={set} /></div>
+              <div className="col-md-4"><AdvField label="Alt. Phone" k="ownerPhoneAlt" placeholder="e.g. 08098765432" value={f.ownerPhoneAlt} onChange={set} /></div>
               <div className="col-md-4">
                 <AdvSelect label="Gender" k="gender" value={f.gender} onChange={set} options={[
                   { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
@@ -313,6 +315,8 @@ const EditCommittedModal = ({ caseData, onClose, onSave, saving }) => {
     firstName: caseData.firstName || '',
     lastName: caseData.lastName || '',
     ownerId: caseData.ownerId || '',
+    ownerPhone: caseData.ownerPhone || '',
+    ownerPhoneAlt: caseData.ownerPhoneAlt || '',
     gender: caseData.gender || '',
     ownerType: caseData.ownerType || '',
     ownershipType: caseData.ownershipType || '',
@@ -667,7 +671,7 @@ const Archive = () => {
                   )}
                 </div>
                 {[
-                  ['Full Name', c.fullName], ['Owner ID', c.ownerId], ['Gender', c.gender?.replace(/_/g, ' ')],
+                  ['Full Name', c.fullName], ['Owner ID', c.ownerId], ['Phone', c.ownerPhone || '—'], ['Alt. Phone', c.ownerPhoneAlt || '—'], ['Gender', c.gender?.replace(/_/g, ' ')],
                   ['Owner Type', c.ownerType?.replace(/_/g, ' ')], ['Ownership', c.ownershipType?.replace(/_/g, ' ')],
                   ['Property ID', c.propertyId], ['Location', c.location],
                   ['LGA', c.lga?.replace(/_/g, ' ')], ['Town', c.town], ['Physical Storage', c.physicalLocation],
