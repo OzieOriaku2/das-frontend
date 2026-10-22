@@ -376,6 +376,8 @@ const EditCommittedModal = ({ caseData, onClose, onSave, saving }) => {
               <div className="col-md-3"><EditField label="First Name" k="firstName" value={fields.firstName} onChange={set} /></div>
               <div className="col-md-3"><EditField label="Last Name" k="lastName" value={fields.lastName} onChange={set} /></div>
               <div className="col-md-4"><EditField label="Owner ID / NIN" k="ownerId" value={fields.ownerId} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Phone" k="ownerPhone" value={fields.ownerPhone} onChange={set} /></div>
+              <div className="col-md-4"><EditField label="Alt. Phone" k="ownerPhoneAlt" value={fields.ownerPhoneAlt} onChange={set} /></div>
               <div className="col-md-4">
                 <EditSelect label="Gender" k="gender" value={fields.gender} onChange={set} options={[
                   { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
